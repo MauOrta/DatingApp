@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using AutoMapper;
 using DatingApp.API.Data;
 using DatingApp.API.Dtos;
 using DatingApp.API.Models;
@@ -18,69 +19,76 @@ namespace DatingApp.API.Controllers
     {
         public IAuthRepository _repo { get; set; }
         public IConfiguration _config { get; set; }
-        public AuthController(IAuthRepository repo, IConfiguration config)
+        public readonly IMapper _mapper;
+        public AuthController(IAuthRepository repo, IConfiguration config, IMapper mapper)
         {
+            _mapper = mapper;
             this._config = config;
             this._repo = repo;
 
         }
 
-        [HttpPost("register")]
-        public async Task<IActionResult> Register(UserForRegisterDto userForRegDto)
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(UserForRegisterDto userForRegDto)
+    {
+        // validate request
+
+        userForRegDto.userName = userForRegDto.userName.ToLower();
+
+        if (await _repo.UserExists(userForRegDto.userName))
+            return BadRequest("Username already exists");
+
+        var userToCreate = new User()
         {
-            // validate request
+            UserName = userForRegDto.userName
+        };
 
-            userForRegDto.userName = userForRegDto.userName.ToLower();
+        var createdUser = await _repo.Register(userToCreate, userForRegDto.password);
 
-            if (await _repo.UserExists(userForRegDto.userName))
-                return BadRequest("Username already exists");
+        return StatusCode(201);
+    }
 
-            var userToCreate = new User()
-            {
-                UserName = userForRegDto.userName
-            };
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(UserForLoginDto userForLogindto)
+    {
 
-            var createdUser = await _repo.Register(userToCreate, userForRegDto.password);
+        // throw new Exception("Computer says no!!");
+        var userFromRepo = await _repo.Login(userForLogindto.Username.ToLower(), userForLogindto.password);
 
-            return StatusCode(201);
-        }
+        if (userFromRepo == null)
+            return Unauthorized();
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login(UserForLoginDto userForLogindto)
+        var claims = new[]
         {
-           
-               // throw new Exception("Computer says no!!");
-                var userFromRepo = await _repo.Login(userForLogindto.Username.ToLower(), userForLogindto.password);
-
-                if (userFromRepo == null)
-                    return Unauthorized();
-
-                var claims = new[]
-                {
                     new Claim(ClaimTypes.NameIdentifier, userFromRepo.Id.ToString()),
                     new Claim(ClaimTypes.Name, userFromRepo.UserName)
                 };
 
-                var key = new SymmetricSecurityKey(Encoding.UTF8
-                        .GetBytes(_config.GetSection("AppSettings:Token").Value));
+        var key = new SymmetricSecurityKey(Encoding.UTF8
+                .GetBytes(_config.GetSection("AppSettings:Token").Value));
 
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
-                var tokenDescriptor = new SecurityTokenDescriptor() {
-                    Subject = new ClaimsIdentity(claims),
-                    Expires = DateTime.Now.AddDays(1),
-                    SigningCredentials = creds
+        var tokenDescriptor = new SecurityTokenDescriptor()
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.Now.AddDays(1),
+            SigningCredentials = creds
 
-                };
+        };
 
-                var tokenHandler = new JwtSecurityTokenHandler();
+        var tokenHandler = new JwtSecurityTokenHandler();
 
-                var token = tokenHandler.CreateToken(tokenDescriptor);
+        var token = tokenHandler.CreateToken(tokenDescriptor);
 
-                return Ok(new {
-                    token = tokenHandler.WriteToken(token)
-                });
-  
-        }
+        var user = _mapper.Map<UserForListDto>(userFromRepo);
+        
+        return Ok(new
+        {
+            token = tokenHandler.WriteToken(token),
+            user
+        });
+
     }
+}
 }
