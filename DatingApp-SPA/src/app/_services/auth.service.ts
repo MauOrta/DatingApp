@@ -14,12 +14,12 @@ export class AuthService {
   jwtHelper = new JwtHelperService();
   decodedToken: any;
   currentUser: User;
-  photoUrl = new BehaviorSubject<string>('../../assets/user.png')
+  photoUrl = new BehaviorSubject<string>('../../assets/user.png');
   currentPhotoUrl = this.photoUrl.asObservable();
   constructor(private http: HttpClient) { }
 
   changeMemberPhoto(photoUrl: string) {
-    this.photoUrl.next(photoUrl)
+    this.photoUrl.next(photoUrl);
   }
   login(model: any) {
   return this.http.post(this.baseUrl + 'login', model)
@@ -45,6 +45,19 @@ export class AuthService {
   loggedIn() {
     const token = localStorage.getItem('token');
     return !this.jwtHelper.isTokenExpired(token);
+  }
+
+  roleMatch(allowedRoles): boolean {
+    let isMatch = false;
+    const userRoles = this.decodedToken.role as Array<string>;
+
+    allowedRoles.forEach(element => {
+      if (userRoles.includes(element)) {
+        isMatch = true;
+        return;
+      }
+    });
+    return isMatch;
   }
 }
 
