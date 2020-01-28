@@ -1,5 +1,7 @@
-export interface Photo {
+export interface PhotoForModeration {
     id: number;
+    userId: number;
+    userKnownAs: string;
     url: string;
     description: string;
     dateAdded: Date;

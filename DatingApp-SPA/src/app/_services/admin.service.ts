@@ -16,7 +16,19 @@ constructor(private http: HttpClient) { }
   }
 
   updateUserRoles(user: User, roles: {}) {
-    console.log(roles);
     return this.http.post(this.baseUrl + 'admin/editRoles/' + user.userName, roles);
   }
+
+  getPhotosForModeration() {
+    return this.http.get(this.baseUrl + 'admin/photosForModeration');
+  }
+
+  rejectPhotoForModeration(userId: number, id: number) {
+    return this.http.delete(this.baseUrl + 'admin/deletePhoto/' + userId + '/' + id);
+  }
+
+  approvePhotoForModeration(userId: number, id: number) {
+    return this.http.post(this.baseUrl + 'admin/authPhoto/' + userId + '/' + id, {});
+  }
+
 }

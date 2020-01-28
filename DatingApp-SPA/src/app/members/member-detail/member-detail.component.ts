@@ -28,8 +28,9 @@ export class MemberDetailComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       const selectedTab = params['tab'];
       this.memberTabs.tabs[selectedTab > 0 ? selectedTab : 1].active = true;
-    })
-    this.galleryOptions =[
+    });
+
+    this.galleryOptions = [
       {
         width: '500px',
         height: '500px',
@@ -44,12 +45,14 @@ export class MemberDetailComponent implements OnInit {
   getImages() {
     const imageUrls = [];
     for (const photo of this.user.photos) {
-      imageUrls.push({
-        small: photo.url,
-        medium: photo.url,
-        big: photo.url,
-        description: photo.description
-      });
+      if (photo.isApproved === true) {
+        imageUrls.push({
+          small: photo.url,
+          medium: photo.url,
+          big: photo.url,
+          description: photo.description
+        });
+      }
     }
     console.log(imageUrls);
     console.log(this.user.photos);
@@ -60,7 +63,7 @@ export class MemberDetailComponent implements OnInit {
     this.memberTabs.tabs[tabId].active = true;
   }
 
-  sendLike(){
+  sendLike() {
     this.userService.sendLike(this.authService.decodedToken.nameid, this.user.id).subscribe(data => {
       this.alertify.success('You have liked: ' + this.user.knownAs);
     }, error => {

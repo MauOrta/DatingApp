@@ -59,6 +59,11 @@ namespace DatingApp.API.Data
             users = users.Where(u => u.Id != userParams.UserId);
 
             users = users.Where(u => u.Gender == userParams.Gender);
+            
+           /* foreach(var u in users)
+            {
+                u.Photos = u.Photos.Where(p => p.IsApproved).ToList();
+            } */
 
             if (userParams.Likers)
             {
@@ -151,6 +156,13 @@ namespace DatingApp.API.Data
             return messages;
 
 
+        }
+
+        public async Task<IEnumerable<Photo>> GetPhotosForModeration()
+        {
+            var photo = await _context.Photos.Where(p => p.IsApproved == false).ToListAsync();
+
+            return photo;
         }
     }
 }
